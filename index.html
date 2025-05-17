@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Morse Code Converter with CRUD</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to right, #141e30, #243b55);
+      color: white;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .container {
+      background: #1f2a44;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      margin: 20px;
+      width: 90%;
+      max-width: 800px;
+    }
+
+    .output {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 15px;
+      min-height: 50px;
+      font-size: 1.2rem;
+      word-wrap: break-word;
+      user-select: text;
+      white-space: pre-wrap;
+    }
+
+    .buttons button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background-color: #3b82f6;
+      color: white;
+      transition: background 0.3s;
+    }
+
+    .buttons button:hover {
+      background-color: #2563eb;
+    }
+
+    .morse-lib {
+      margin-top: 30px;
+      font-size: 0.95rem;
+      background-color: #0f172a;
+      padding: 15px;
+      border-radius: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    /* Saved entries styling */
+    .saved-list {
+      margin-top: 20px;
+    }
+
+    .saved-item {
+      background-color: #334155;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+
+    .saved-text {
+      flex-grow: 1;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    .saved-buttons button {
+      margin-left: 5px;
+      background-color: #ef4444;
+    }
+
+    .saved-buttons button.edit-btn {
+      background-color: #f59e0b;
+    }
+
+    .saved-buttons button:hover {
+      filter: brightness(1.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Morse Code Converter with CRUD</h1>
+  <div class="container">
+    <div class="output" id="morseOutput" contenteditable="true" spellcheck="false"></div>
+    <div class="buttons">
+      <button onclick="appendSymbol('-')">-</button>
+      <button onclick="appendSymbol('.')">.</button>
+      <button onclick="appendSymbol(' ')">Space</button>
+      <button onclick="backspace()">Backspace</button>
+      <button onclick="clearOutput()">Clear</button>
+      <button onclick="saveEntry()">Save</button>
+    </div>
+
+    <!-- Saved Morse code entries -->
+    <div class="saved-list" id="savedList">
+      <h3>Saved Morse Codes</h3>
+      <div id="entriesContainer"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h3>Morse Code Reference Library</h3>
+    <div class="morse-lib" id="morseLib"></div>
+  </div>
+
+  <script>
+    const morseOutput = document.getElementById("morseOutput");
+    const entriesContainer = document.getElementById("entriesContainer");
+
+    // In-memory storage for entries (could be enhanced to localStorage)
+    let savedEntries = [];
+    let editIndex = null; // Track which entry is being edited
+
+    function appendSymbol(symbol) {
+      morseOutput.textContent += symbol;
+    }
+
+    function backspace() {
+      morseOutput.textContent = morseOutput.textContent.slice(0, -1);
+    }
+
+    function clearOutput() {
+      morseOutput.textContent = "";
+    }
+
+    // CRUD Methods
+
+    // Create or Update
+    function saveEntry() {
+      const text = morseOutput.textContent.trim();
+      if (!text) {
+        alert("Please enter some Morse code to save.");
+        return;
+      }
+
+      if (editIndex !== null) {
+        // Update existing entry
+        savedEntries[editIndex] = text;
+        editIndex = null;
+      } else {
+        // Create new entry
+        savedEntries.push(text);
+      }
+
+      morseOutput.textContent = "";
+      renderEntries();
+    }
+
+    // Read & Render
+    function renderEntries() {
+      entriesContainer.innerHTML = "";
+      if (savedEntries.length === 0) {
+        entriesContainer.textContent = "No saved entries.";
+        return;
+      }
+      savedEntries.forEach((entry, index) => {
+        const div = document.createElement("div");
+        div.classList.add("saved-item");
+
+        const textDiv = document.createElement("div");
+        textDiv.classList.add("saved-text");
+        textDiv.textContent = entry;
+        // Clicking text loads it back into output for editing convenience
+        textDiv.onclick = () => {
+          morseOutput.textContent = entry;
+          editIndex = index;
+        };
+
+        const btnsDiv = document.createElement("div");
+        btnsDiv.classList.add("saved-buttons");
+
+        // Edit button (same as clicking text, but more explicit)
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.classList.add("edit-btn");
+        editBtn.onclick = () => {
+          morseOutput.textContent = entry;
+          editIndex = index;
+        };
+
+        // Delete button
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.onclick = () => {
+          if (confirm("Delete this entry?")) {
+            savedEntries.splice(index, 1);
+            if (editIndex === index) {
+              morseOutput.textContent = "";
+              editIndex = null;
+            }
+            renderEntries();
+          }
+        };
+
+        btnsDiv.appendChild(editBtn);
+        btnsDiv.appendChild(deleteBtn);
+        div.appendChild(textDiv);
+        div.appendChild(btnsDiv);
+        entriesContainer.appendChild(div);
+      });
+    }
+
+    // Initialize Morse library display
+    const morseLibrary = {
+      A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".",
+      F: "..-.", G: "--.", H: "....", I: "..", J: ".---",
+      K: "-.-", L: ".-..", M: "--", N: "-.", O: "---",
+      P: ".--.", Q: "--.-", R: ".-.", S: "...", T: "-",
+      U: "..-", V: "...-", W: ".--", X: "-..-", Y: "-.--",
+      Z: "--..",
+      0: "-----", 1: ".----", 2: "..---", 3: "...--",
+      4: "....-", 5: ".....", 6: "-....", 7: "--...",
+      8: "---..", 9: "----."
+    };
+
+    const morseLibDiv = document.getElementById("morseLib");
+    for (const [letter, code] of Object.entries(morseLibrary)) {
+      const div = document.createElement("div");
+      div.textContent = `${letter} : ${code}`;
+      morseLibDiv.appendChild(div);
+    }
+
+    // Render saved entries on load
+    renderEntries();
+  </script>
+</body>
+</html>
