@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Morse Code Converter with CRUD</title>
+  <title>Morse Code Converter with Accumulated Output</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -30,6 +30,28 @@
       margin: 20px;
       width: 90%;
       max-width: 800px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    #convertedText {
+      width: 100%;
+      font-size: 1.3rem;
+      background-color: #0f172a;
+      color: white;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 15px;
+      min-height: 40px;
+      user-select: text;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
     }
 
     .output {
@@ -109,9 +131,15 @@
   </style>
 </head>
 <body>
-  <h1>Morse Code Converter with CRUD</h1>
+  <h1>Morse Code Converter with Accumulated Output</h1>
   <div class="container">
+
+    <label for="convertedText">Converted Text:</label>
+    <div id="convertedText" readonly></div>
+
+    <label for="morseOutput">Morse Code Input:</label>
     <div class="output" id="morseOutput" contenteditable="true" spellcheck="false"></div>
+
     <div class="buttons">
       <button onclick="appendSymbol('-')">-</button>
       <button onclick="appendSymbol('.')">.</button>
@@ -119,6 +147,7 @@
       <button onclick="backspace()">Backspace</button>
       <button onclick="clearOutput()">Clear</button>
       <button onclick="saveEntry()">Save</button>
+      <button onclick="convertMorseToText()">Enter</button>
     </div>
 
     <!-- Saved Morse code entries -->
@@ -135,11 +164,12 @@
 
   <script>
     const morseOutput = document.getElementById("morseOutput");
+    const convertedTextDiv = document.getElementById("convertedText");
     const entriesContainer = document.getElementById("entriesContainer");
 
-    // In-memory storage for entries (could be enhanced to localStorage)
+    // In-memory storage for entries
     let savedEntries = [];
-    let editIndex = null; // Track which entry is being edited
+    let editIndex = null;
 
     function appendSymbol(symbol) {
       morseOutput.textContent += symbol;
@@ -151,32 +181,27 @@
 
     function clearOutput() {
       morseOutput.textContent = "";
+      convertedTextDiv.textContent = "";
     }
 
-    // CRUD Methods
-
-    // Create or Update
+    // Create or Update saved entries
     function saveEntry() {
       const text = morseOutput.textContent.trim();
       if (!text) {
         alert("Please enter some Morse code to save.");
         return;
       }
-
       if (editIndex !== null) {
-        // Update existing entry
         savedEntries[editIndex] = text;
         editIndex = null;
       } else {
-        // Create new entry
         savedEntries.push(text);
       }
-
       morseOutput.textContent = "";
       renderEntries();
     }
 
-    // Read & Render
+    // Render saved entries list
     function renderEntries() {
       entriesContainer.innerHTML = "";
       if (savedEntries.length === 0) {
@@ -190,7 +215,6 @@
         const textDiv = document.createElement("div");
         textDiv.classList.add("saved-text");
         textDiv.textContent = entry;
-        // Clicking text loads it back into output for editing convenience
         textDiv.onclick = () => {
           morseOutput.textContent = entry;
           editIndex = index;
@@ -199,7 +223,6 @@
         const btnsDiv = document.createElement("div");
         btnsDiv.classList.add("saved-buttons");
 
-        // Edit button (same as clicking text, but more explicit)
         const editBtn = document.createElement("button");
         editBtn.textContent = "Edit";
         editBtn.classList.add("edit-btn");
@@ -208,7 +231,6 @@
           editIndex = index;
         };
 
-        // Delete button
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "Delete";
         deleteBtn.onclick = () => {
@@ -230,7 +252,7 @@
       });
     }
 
-    // Initialize Morse library display
+    // Morse code reference library
     const morseLibrary = {
       A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".",
       F: "..-.", G: "--.", H: "....", I: "..", J: ".---",
@@ -243,11 +265,46 @@
       8: "---..", 9: "----."
     };
 
+    // Initialize Morse library display
     const morseLibDiv = document.getElementById("morseLib");
     for (const [letter, code] of Object.entries(morseLibrary)) {
       const div = document.createElement("div");
       div.textContent = `${letter} : ${code}`;
       morseLibDiv.appendChild(div);
+    }
+
+    // Convert Morse code to text and append to convertedTextDiv
+    function convertMorseToText() {
+      const morseText = morseOutput.textContent.trim();
+      if (!morseText) {
+        alert("Please enter Morse code to convert.");
+        return;
+      }
+
+      // Morse code words separated by 3 spaces; letters separated by 1 space
+      const morseWords = morseText.split('   ');
+
+      // Reverse map for Morse code to char
+      const morseToChar = {};
+      for (const [char, code] of Object.entries(morseLibrary)) {
+        morseToChar[code] = char;
+      }
+
+      const result = morseWords.map(word =>
+        word.split(' ').map(letterCode =>
+          morseToChar[letterCode] || '?'
+        ).join('')
+      ).join(' ');
+
+      // Append result to convertedTextDiv with a space separator if not empty
+      if (convertedTextDiv.textContent) {
+        convertedTextDiv.textContent += ' ' + result;
+      } else {
+        convertedTextDiv.textContent = result;
+      }
+
+      // Clear morse output after converting
+      morseOutput.textContent = "";
     }
 
     // Render saved entries on load
